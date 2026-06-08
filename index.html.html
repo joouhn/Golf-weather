@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>홀바이홀 · 라운딩 체감날씨</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-top:#1a2b2a;
+    --bg-mid:#24403b;
+    --bg-low:#3a5c4d;
+    --fairway:#6f9a6a;
+    --mist:#f4f1e8;
+    --paper:#fbfaf4;
+    --ink:#1c2422;
+    --ink-soft:#5c6660;
+    --amber:#e8a14b;
+    --amber-deep:#c9772a;
+    --cool:#5b8fb0;
+    --cold:#46739a;
+    --warm:#d98a4a;
+    --hot:#c75b3c;
+    --line:rgba(28,36,34,.10);
+    --card:#ffffff;
+    --shadow:0 1px 2px rgba(20,30,26,.06),0 8px 28px rgba(20,30,26,.10);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{min-height:100%}
+  body{
+    font-family:"IBM Plex Sans KR",sans-serif;
+    color:var(--ink);
+    background:
+      radial-gradient(120% 80% at 80% -10%, rgba(232,161,75,.22), transparent 55%),
+      linear-gradient(180deg,var(--bg-top),var(--bg-mid) 38%,var(--bg-low) 100%);
+    background-attachment:fixed;
+    -webkit-font-smoothing:antialiased;
+    line-height:1.5;
+    padding:env(safe-area-inset-top) 0 64px;
+  }
+  .wrap{max-width:760px;margin:0 auto;padding:28px 18px 0}
+
+  /* Header */
+  header{color:var(--mist);margin-bottom:22px}
+  .kicker{font-size:12.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--amber);font-weight:600}
+  h1{font-family:"Gowun Batang",serif;font-weight:700;font-size:30px;line-height:1.2;margin:8px 0 6px;letter-spacing:-.01em}
+  header p{font-size:14px;color:rgba(244,241,232,.74);max-width:48ch}
+
+  /* Control panel */
+  .panel{
+    background:var(--paper);border-radius:18px;padding:18px 16px 16px;
+    box-shadow:var(--shadow);margin-bottom:18px;
+  }
+  .field{margin-bottom:13px}
+  .field:last-child{margin-bottom:0}
+  label{display:block;font-size:12.5px;font-weight:600;color:var(--ink-soft);margin-bottom:6px;letter-spacing:.01em}
+  input,select{
+    width:100%;font-family:inherit;font-size:16px;color:var(--ink);
+    background:#fff;border:1.5px solid var(--line);border-radius:11px;
+    padding:11px 12px;outline:none;transition:border-color .15s,box-shadow .15s;
+  }
+  input:focus,select:focus{border-color:var(--fairway);box-shadow:0 0 0 3px rgba(111,154,106,.15)}
+  .row{display:flex;gap:10px}
+  .row>.field{flex:1}
+  .presets{display:flex;flex-wrap:wrap;gap:7px;margin-top:7px}
+  .chip{
+    font-size:12.5px;font-weight:500;color:var(--ink-soft);
+    background:#fff;border:1.5px solid var(--line);border-radius:999px;
+    padding:6px 11px;cursor:pointer;transition:all .15s;
+  }
+  .chip:hover{border-color:var(--fairway);color:var(--ink)}
+  .chip.active{background:var(--fairway);border-color:var(--fairway);color:#fff}
+  .go{
+    width:100%;margin-top:4px;font-family:inherit;font-size:15.5px;font-weight:600;color:#fff;
+    background:linear-gradient(180deg,#4f7a52,#3d6342);border:none;border-radius:12px;
+    padding:13px;cursor:pointer;letter-spacing:.02em;transition:filter .15s,transform .05s;
+  }
+  .go:hover{filter:brightness(1.06)}
+  .go:active{transform:translateY(1px)}
+  .go:disabled{opacity:.55;cursor:default}
+
+  /* Status / banner */
+  .banner{font-size:12.5px;color:#7a5b1c;background:#fdf3df;border:1px solid #f0dcae;
+    border-radius:10px;padding:9px 12px;margin-bottom:14px;display:none}
+  .banner.show{display:block}
+
+  /* Now card */
+  .now{
+    background:linear-gradient(135deg,#fffdf7,#fbf6ea);border-radius:18px;
+    box-shadow:var(--shadow);padding:18px;margin-bottom:16px;
+    display:none;position:relative;overflow:hidden;
+  }
+  .now.show{display:block}
+  .now::after{content:"";position:absolute;right:-40px;top:-40px;width:160px;height:160px;
+    background:radial-gradient(circle,rgba(232,161,75,.18),transparent 70%);pointer-events:none}
+  .now .tag{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--amber-deep);font-weight:600}
+  .now .place{font-family:"Gowun Batang",serif;font-size:17px;font-weight:700;margin:2px 0 12px}
+  .now .big{display:flex;align-items:baseline;gap:10px}
+  .now .feels{font-family:"IBM Plex Mono",monospace;font-size:46px;font-weight:600;line-height:1;letter-spacing:-.02em}
+  .now .feels span{font-size:20px}
+  .now .real{font-size:13px;color:var(--ink-soft)}
+  .now .meta{display:flex;gap:18px;margin-top:12px;font-size:13px;color:var(--ink-soft)}
+  .now .meta b{color:var(--ink);font-weight:600;font-family:"IBM Plex Mono",monospace}
+  .locbtn{position:absolute;right:14px;bottom:14px;font-size:11.5px;font-weight:500;
+    color:var(--cool);background:#fff;border:1.5px solid var(--line);border-radius:999px;
+    padding:5px 10px;cursor:pointer}
+  .locbtn:hover{border-color:var(--cool)}
+
+  /* Section title */
+  .sec{display:none;align-items:baseline;justify-content:space-between;color:var(--mist);margin:4px 4px 12px}
+  .sec.show{display:flex}
+  .sec h2{font-family:"Gowun Batang",serif;font-size:19px;font-weight:700}
+  .sec span{font-size:12.5px;color:rgba(244,241,232,.6)}
+
+  /* Hole list */
+  .holes{display:none;flex-direction:column;gap:7px}
+  .holes.show{display:flex}
+  .hole{
+    background:var(--card);border-radius:13px;padding:12px 14px;box-shadow:var(--shadow);
+    display:grid;grid-template-columns:46px 1fr auto;align-items:center;gap:12px;
+    animation:rise .4s both;
+  }
+  @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .hno{font-family:"Gowun Batang",serif;font-size:21px;font-weight:700;color:var(--fairway);text-align:center}
+  .hno small{display:block;font-family:"IBM Plex Sans KR";font-size:10px;font-weight:500;color:var(--ink-soft);letter-spacing:.05em}
+  .htime{font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--ink-soft);margin-bottom:3px}
+  .hbar{height:6px;border-radius:4px;background:var(--line);overflow:hidden;max-width:200px}
+  .hbar i{display:block;height:100%;border-radius:4px}
+  .hmeta{font-size:11.5px;color:var(--ink-soft);margin-top:4px;font-family:"IBM Plex Mono",monospace}
+  .hright{text-align:right}
+  .hfeels{font-family:"IBM Plex Mono",monospace;font-size:24px;font-weight:600;line-height:1}
+  .hfeels span{font-size:13px}
+  .delta{font-size:11.5px;font-weight:600;margin-top:3px;padding:2px 7px;border-radius:999px;display:inline-block}
+
+  .phase{font-family:"Gowun Batang",serif;color:rgba(244,241,232,.85);font-size:13px;
+    font-weight:700;letter-spacing:.05em;margin:10px 4px 2px}
+  .phase:first-child{margin-top:0}
+
+  footer{color:rgba(244,241,232,.45);font-size:11.5px;text-align:center;margin-top:26px;line-height:1.7}
+  footer a{color:rgba(244,241,232,.6)}
+  .err{color:#ffd9cf;font-size:13px;text-align:center;padding:10px;display:none}
+  .err.show{display:block}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="kicker">Hole-by-Hole</div>
+    <h1>라운딩 체감날씨</h1>
+    <p>티업 시간을 넣으면 각 홀을 도는 시각의 체감온도를, <b style="color:var(--mist)">지금 내가 느끼는 체감</b>과 나란히 비교해 보여줘요. "지금 이 느낌이면, 9번 홀쯤엔 이렇겠구나"를 한눈에.</p>
+  </header>
+
+  <div class="panel">
+    <div class="field">
+      <label for="course">골프장 / 위치</label>
+      <input id="course" type="text" placeholder="예: 남서울CC, 제주, 경기 광주…" autocomplete="off" />
+      <div class="presets" id="presets"></div>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label for="date">날짜</label>
+        <input id="date" type="date" />
+      </div>
+      <div class="field">
+        <label for="tee">티업 시간</label>
+        <input id="tee" type="time" value="07:00" />
+      </div>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label for="dur">라운드 소요시간</label>
+        <select id="dur">
+          <option value="4">4시간 (빠른 진행)</option>
+          <option value="4.5" selected>4시간 30분 (보통)</option>
+          <option value="5">5시간</option>
+          <option value="5.5">5시간 30분 (대기 많음)</option>
+        </select>
+      </div>
+      <div class="field" style="max-width:42%">
+        <label for="rest">그늘집 휴식 <span id="restVal" style="color:var(--fairway);font-weight:700">15분</span></label>
+        <input id="rest" type="range" min="0" max="45" step="5" value="15" style="padding:0;border:none;accent-color:var(--fairway);margin-top:14px" />
+      </div>
+    </div>
+    <button class="go" id="go">체감날씨 보기</button>
+  </div>
+
+  <div class="banner" id="banner"></div>
+  <div class="err" id="err"></div>
+
+  <div class="now" id="now">
+    <div class="tag" id="nowTag">지금 · 내 위치 기준점</div>
+    <div class="place" id="nowPlace">현재 위치 확인 중…</div>
+    <div class="big">
+      <div class="feels" id="nowFeels">--<span>°</span></div>
+      <div class="real" id="nowReal"></div>
+    </div>
+    <div class="meta">
+      <div>습도 <b id="nowHum">--</b>%</div>
+      <div>바람 <b id="nowWind">--</b> m/s</div>
+    </div>
+    <button class="locbtn" id="locbtn">📍 위치 다시 잡기</button>
+  </div>
+
+  <div class="sec" id="sec">
+    <h2>홀별 예상 체감</h2>
+    <span id="secSub"></span>
+  </div>
+
+  <div class="holes" id="holes"></div>
+
+  <footer>
+    날씨 데이터: Open-Meteo (무료·키 불필요, 기상청 포함 모델) · 체감온도는 기상학적 apparent temperature 기준<br/>
+    프로토타입 — 데이터·해석은 참고용이에요
+  </footer>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+// 주요 골프장 프리셋 (이름, 위도, 경도) — 지오코딩 실패 시에도 동작
+const PRESETS = [
+  {name:"영종 베르힐CC (인천)", lat:37.493, lon:126.515},
+  {name:"남서울CC (성남)", lat:37.412, lon:127.105},
+  {name:"제주 핀크스", lat:33.318, lon:126.366},
+  {name:"가평 베네스트", lat:37.831, lon:127.385},
+  {name:"인천 잭니클라우스", lat:37.378, lon:126.635},
+  {name:"강원 비발디파크", lat:37.650, lon:127.685},
+];
+let selected = null; // {name,lat,lon}
+
+// 프리셋 칩 렌더
+const presetsEl = $('presets');
+PRESETS.forEach(p=>{
+  const b=document.createElement('button');
+  b.className='chip'; b.textContent=p.name.split(' ')[0];
+  b.onclick=()=>{ selected={...p}; $('course').value=p.name;
+    [...presetsEl.children].forEach(c=>c.classList.remove('active')); b.classList.add('active'); };
+  presetsEl.appendChild(b);
+});
+
+// 오늘 날짜 최소값
+$('date').min = new Date().toISOString().slice(0,10);
+// 이 라운딩에 맞춰 기본값 세팅 (6/13 토 18:45 3부 · 영종 베르힐)
+$('date').value = '2026-06-13';
+$('tee').value = '18:45';
+$('dur').value = '4.5';
+selected = {...PRESETS[0]};
+$('course').value = PRESETS[0].name;
+presetsEl.firstChild.classList.add('active');
+
+// 체감 → 색 (추움 파랑 ~ 더움 빨강)
+function feelColor(t){
+  if(t<=5)  return '#46739a';
+  if(t<=12) return '#5b8fb0';
+  if(t<=18) return '#6f9a6a';
+  if(t<=24) return '#9fae5a';
+  if(t<=29) return '#d98a4a';
+  return '#c75b3c';
+}
+// 지금 대비 델타 → 라벨/색
+function deltaLabel(d){
+  const a=Math.abs(d);
+  if(a<1.5) return {t:'지금과 비슷', bg:'#eef1ec', fg:'#5c6660'};
+  if(d>0){
+    if(d>5)  return {t:`지금보다 +${d.toFixed(0)}° 후텁`, bg:'#fbe6da', fg:'#c75b3c'};
+    return {t:`지금보다 +${d.toFixed(0)}° 포근`, bg:'#fbeede', fg:'#c9772a'};
+  } else {
+    if(d<-5) return {t:`지금보다 ${d.toFixed(0)}° 쌀쌀`, bg:'#dfe9f1', fg:'#46739a'};
+    return {t:`지금보다 ${d.toFixed(0)}° 선선`, bg:'#e4eef0', fg:'#3f7d8c'};
+  }
+}
+
+// 시간 문자열
+function fmt(d){ return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0'); }
+
+// 지오코딩 (Open-Meteo, 키 불필요)
+async function geocode(q){
+  const url=`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=1&language=ko&country=KR`;
+  const r=await fetchT(url,7000);
+  const j=await r.json();
+  if(j.results&&j.results.length){
+    const g=j.results[0];
+    return {name:g.name+(g.admin1?` (${g.admin1})`:''), lat:g.latitude, lon:g.longitude};
+  }
+  return null;
+}
+// timeout fetch
+function fetchT(url,ms){
+  const c=new AbortController(); const id=setTimeout(()=>c.abort(),ms);
+  return fetch(url,{signal:c.signal}).finally(()=>clearTimeout(id));
+}
+
+// 다음 날짜 (야간 라운딩이 자정 넘길 때 대비)
+function nextDay(d){ const x=new Date(d+'T00:00:00'); x.setDate(x.getDate()+1); return x.toISOString().slice(0,10); }
+// 예보 가져오기
+async function getForecast(lat,lon,dateStr){
+  const url=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}`
+    +`&hourly=temperature_2m,relative_humidity_2m,apparent_temperature,wind_speed_10m,precipitation_probability`
+    +`&current=temperature_2m,relative_humidity_2m,apparent_temperature,wind_speed_10m`
+    +`&timezone=auto&windspeed_unit=ms&start_date=${dateStr}&end_date=${nextDay(dateStr)}`;
+  const r=await fetchT(url,8000);
+  return r.json();
+}
+
+// 시간 보간: hourly 배열에서 특정 Date의 값
+function interp(times, vals, target){
+  const t=target.getTime();
+  for(let i=0;i<times.length-1;i++){
+    const a=new Date(times[i]).getTime(), b=new Date(times[i+1]).getTime();
+    if(t>=a&&t<=b){ const f=(t-a)/(b-a); return vals[i]+(vals[i+1]-vals[i])*f; }
+  }
+  // 범위 밖이면 가장 가까운 값
+  return t<new Date(times[0]).getTime()?vals[0]:vals[vals.length-1];
+}
+
+// 샘플 데이터 (외부 호출 막혔을 때) — 6월 야간 라운딩에 맞춘 일교차 곡선, 48시간
+function sampleData(dateStr){
+  const hourly={time:[],temperature_2m:[],relative_humidity_2m:[],apparent_temperature:[],wind_speed_10m:[],precipitation_probability:[]};
+  // 하루 기온 모델: 새벽 19°, 오후 2~3시 29° 최고, 저녁 들며 하강
+  const tempAt=h=>{ const x=((h%24)-15)/9; return 24 + 5*Math.cos(x*1.1) - (h%24>=18?(h%24-18)*0.9:0); };
+  for(let day=0;day<2;day++){
+    const ds=day===0?dateStr:nextDay(dateStr);
+    for(let h=0;h<24;h++){
+      hourly.time.push(`${ds}T${h.toString().padStart(2,'0')}:00`);
+      const tp=+tempAt(h).toFixed(1);
+      hourly.temperature_2m.push(tp);
+      const hum=Math.round(58+(24-tp)*1.8+(h>=20||h<6?8:0));
+      hourly.relative_humidity_2m.push(Math.max(35,Math.min(95,hum)));
+      // 체감: 습할수록·바람 약할수록 실제보다 따뜻하게 느껴지는 여름밤 보정
+      const wind=+(1.4+Math.abs(Math.sin(h/3))*1.3).toFixed(1);
+      hourly.apparent_temperature.push(+(tp + (tp>24?0.8:-0.6) - wind*0.15).toFixed(1));
+      hourly.wind_speed_10m.push(wind);
+      hourly.precipitation_probability.push(h>=14&&h<=17?25:5);
+    }
+  }
+  const now=new Date(); const hh=now.getHours(); const tpn=+tempAt(hh).toFixed(1);
+  return {sample:true, hourly,
+    current:{temperature_2m:tpn, relative_humidity_2m:Math.max(35,Math.round(58+(24-tpn)*1.8)),
+             apparent_temperature:+(tpn+(tpn>24?0.8:-0.6)).toFixed(1), wind_speed_10m:1.9}};
+}
+
+let courseData=null;          // 골프장 예보
+let nowBase=null;             // 내 위치 현재 기준 {apparent_temperature,temperature_2m,relative_humidity_2m,wind_speed_10m,label}
+
+function paintNow(cur, placeName){
+  $('nowPlace').textContent=placeName;
+  $('nowFeels').innerHTML=`${Math.round(cur.apparent_temperature)}<span>°</span>`;
+  $('nowFeels').style.color=feelColor(cur.apparent_temperature);
+  $('nowReal').textContent=`실제기온 ${Math.round(cur.temperature_2m)}°`;
+  $('nowHum').textContent=Math.round(cur.relative_humidity_2m);
+  $('nowWind').textContent=cur.wind_speed_10m.toFixed(1);
+  $('now').classList.add('show');
+}
+
+// 내 현재 위치를 '지금 기준점'으로
+function locateNow(){
+  $('now').classList.add('show');
+  if(!navigator.geolocation){ $('nowPlace').textContent='이 기기에선 위치를 쓸 수 없어요'; return; }
+  $('nowTag').textContent='지금 · 내 위치 기준점';
+  $('nowPlace').textContent='현재 위치 확인 중…';
+  $('locbtn').textContent='확인 중…';
+  const today=new Date().toISOString().slice(0,10);
+  navigator.geolocation.getCurrentPosition(async pos=>{
+    try{
+      const d=await getForecast(pos.coords.latitude,pos.coords.longitude,today);
+      const c=d.current||d.hourly&&{apparent_temperature:d.hourly.apparent_temperature[new Date().getHours()],
+        temperature_2m:d.hourly.temperature_2m[new Date().getHours()],
+        relative_humidity_2m:d.hourly.relative_humidity_2m[new Date().getHours()],
+        wind_speed_10m:d.hourly.wind_speed_10m[new Date().getHours()]};
+      nowBase={...c,label:'내 현재 위치'};
+    }catch(e){
+      // 호출 막히면 샘플 현재값으로라도 기준 제시
+      nowBase={...sampleData(today).current,label:'내 위치(샘플)'};
+    }
+    paintNow(nowBase,nowBase.label);
+    $('locbtn').textContent='📍 위치 다시 잡기';
+    if(courseData) drawHoles();   // 기준 잡혔으니 델타 다시 계산
+  },err=>{
+    $('nowPlace').textContent='위치 권한이 없어 비교 기준을 못 잡았어요';
+    $('nowFeels').innerHTML='–<span>°</span>';
+    $('nowTag').textContent='지금 · 위치 필요';
+    $('locbtn').textContent='📍 위치 허용하고 다시';
+    if(courseData) drawHoles();   // 기준 없이 예보만 표시
+  },{timeout:9000,maximumAge:300000});
+}
+
+// 홀별 렌더 (courseData + 입력값 사용)
+function drawHoles(){
+  if(!courseData) return;
+  const data=courseData;
+  const teeDate=new Date(`${$('date').value}T${$('tee').value}:00`);
+  const durH=parseFloat($('dur').value);
+  const restMin=parseInt($('rest').value,10);
+  const nowFeels = nowBase? nowBase.apparent_temperature : null;
+
+  const holesEl=$('holes'); holesEl.innerHTML='';
+  const perHole=(durH*60)/18;
+  const phases={1:'전반 (OUT)',10:`후반 (IN)${restMin>0?` · 그늘집 ${restMin}분 후`:''}`};
+  for(let h=1;h<=18;h++){
+    if(phases[h]){const p=document.createElement('div');p.className='phase';p.textContent=phases[h];holesEl.appendChild(p);}
+    // 후반(10번~)은 그늘집 휴식만큼 시각이 밀림
+    const restOffset = h>=10 ? restMin : 0;
+    const t=new Date(teeDate.getTime()+(perHole*(h-0.5)+restOffset)*60000);
+    const feels=interp(data.hourly.time,data.hourly.apparent_temperature,t);
+    const temp =interp(data.hourly.time,data.hourly.temperature_2m,t);
+    const hum  =interp(data.hourly.time,data.hourly.relative_humidity_2m,t);
+    const pop  =interp(data.hourly.time,data.hourly.precipitation_probability,t);
+    let chip='';
+    if(nowFeels!=null){ const dl=deltaLabel(feels-nowFeels); chip=`<span class="delta" style="background:${dl.bg};color:${dl.fg}">${dl.t}</span>`; }
+    else { chip=`<span class="delta" style="background:#eef1ec;color:#8a948e">위치 잡으면 비교</span>`; }
+    const row=document.createElement('div');
+    row.className='hole'; row.style.animationDelay=(h*20)+'ms';
+    row.innerHTML=`
+      <div class="hno">${h}<small>HOLE</small></div>
+      <div>
+        <div class="htime">${fmt(t)} 예상</div>
+        <div class="hbar"><i style="width:${Math.max(8,Math.min(100,(feels+5)/40*100))}%;background:${feelColor(feels)}"></i></div>
+        <div class="hmeta">실제 ${Math.round(temp)}° · 습도 ${Math.round(hum)}%${pop>=30?` · 비 ${Math.round(pop)}%`:''}</div>
+      </div>
+      <div class="hright">
+        <div class="hfeels" style="color:${feelColor(feels)}">${Math.round(feels)}<span>°</span></div>
+        ${chip}
+      </div>`;
+    holesEl.appendChild(row);
+  }
+  $('secSub').textContent=`${fmt(teeDate)} 티업 · 약 ${durH}시간${restMin>0?` · 그늘집 ${restMin}분`:''}`;
+  $('sec').classList.add('show');
+  holesEl.classList.add('show');
+}
+
+// 골프장 예보 불러오기 + 렌더
+async function run(){
+  $('err').classList.remove('show'); $('banner').classList.remove('show');
+  const q=$('course').value.trim();
+  const dateStr=$('date').value;
+  if(!dateStr||!$('tee').value){ showErr('날짜와 티업 시간을 입력해주세요.'); return; }
+  $('go').disabled=true; $('go').textContent='불러오는 중…';
+
+  let place=selected;
+  try{ if(!place && q){ place=await geocode(q); } }catch(e){}
+  if(!place){ place=selected||PRESETS[0];
+    if(q){ $('banner').textContent=`'${q}' 위치를 못 찾아 ${place.name} 기준으로 보여줄게요. 위 칩에서 골라도 돼요.`; $('banner').classList.add('show'); } }
+
+  try{
+    courseData=await getForecast(place.lat,place.lon,dateStr);
+    if(!courseData.hourly) throw new Error('no data');
+  }catch(e){
+    courseData=sampleData(dateStr);
+    $('banner').textContent='⚠️ 이 미리보기에선 실시간 날씨 호출이 막혀 샘플 데이터로 보여주고 있어요. 파일을 사파리에서 직접 열거나 배포하면 실제 데이터가 들어옵니다.';
+    $('banner').classList.add('show');
+  }
+  $('secSub'); $('sec'); 
+  document.querySelector('.sec h2').textContent = `홀별 예상 체감 · ${place.name}${courseData.sample?' · 샘플':''}`;
+  drawHoles();
+  $('go').disabled=false; $('go').textContent='체감날씨 다시 보기';
+}
+
+function showErr(m){ $('err').textContent=m; $('err').classList.add('show'); }
+
+$('go').onclick=run;
+$('locbtn').onclick=locateNow;
+// 슬라이더 라벨 + 즉시 반영
+$('rest').addEventListener('input',()=>{ $('restVal').textContent=$('rest').value+'분'; if(courseData) drawHoles(); });
+
+// 열리면: 내 위치 기준점 잡기 + 골프장 예보 동시에
+window.addEventListener('load',()=>{ setTimeout(()=>{ locateNow(); run(); },250); });
+</script>
+</body>
+</html>
